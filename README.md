@@ -3,14 +3,14 @@ ZmqConfigServer
 
 ZMQ Based Central Configuration Manager.
 
-The configuration is read from a [[http://www.yaml.org/][YAML]] file that can be 
+The configuration is read from a [YAML](http://www.yaml.org/) file that can be 
 specified on the command line. The parsed configuration is then made accessible 
 on a zmq socket.
 
     zmqconf --config config.yaml --endpoint tcp://*:6000
 
 The config server can be accessed by connecting a zmq-REQ socket.
-Using the following protocol:
+Using the following protocol (cf. [MDP Pattern](http://rfc.zeromq.org/spec:7)):
 
 Request:
 * Frame 0: Empty (inivisible to the REQ application)
