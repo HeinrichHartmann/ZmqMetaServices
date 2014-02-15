@@ -15,8 +15,8 @@ Using the following protocol (inspired by [MDP Pattern](http://rfc.zeromq.org/sp
 Request:
 * Frame 0: Empty (inivisible to the REQ application)
 * Frame 1: "ZCS01" (identifier)
-* Frame 2: "GET" (command)
-* Frame 3: "[KEY]" requested key
+* Frame 2: [COMAND] (currently 'GET' only)
+* Frame 3: [KEY] requested key. No whitespace.
 * Frame 4: Node information (optional)
 
 Reply:
