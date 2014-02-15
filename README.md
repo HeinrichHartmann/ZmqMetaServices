@@ -10,29 +10,20 @@ on a zmq socket.
     zmqconf --config config.yaml --endpoint tcp://*:6000
 
 The config server can be accessed by connecting a zmq-REQ socket.
-Using the following protocol:
-
-Request:
-* Frame 1:"GET [RESSOURCE]" where [RESSOURCE] is a string identifier
-
-Reply:
-* Frame 1: "OK" / Error message
-* Frame 2: Value as binary blop
-
-## Avanced protocol
-CF. [MDP Pattern](http://rfc.zeromq.org/spec:7). TBD.
+Using the following protocol (inspired by [MDP Pattern](http://rfc.zeromq.org/spec:7)):
 
 Request:
 * Frame 0: Empty (inivisible to the REQ application)
 * Frame 1: "ZCS01" (identifier)
-* Frame 2: "GET [RESSOURCE]"
-* Frame 3: Node information (optional)
+* Frame 2: "GET" (command)
+* Frame 3: "[KEY]" requested key
+* Frame 4: Node information (optional)
 
 Reply:
 * Frame 0: Empty (invisble to the REP application)
 * Frame 1: "ZCS01" (identifier)
 * Frame 2: "OK" or "NOK" (depending on whether the request was successfull)
-* Frame 3: Value (optional)
+* Frame 3: Reply body (optional)
 
 
 ## Use Case Examples
