@@ -1,3 +1,4 @@
+import org.apache.commons.cli.*;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.jeromq.ZMQ;
@@ -7,8 +8,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by hartmann on 2/15/14.
@@ -17,7 +16,7 @@ public class ConfigServer {
 
     private static final String REGEXP = "^(GET) (\\S*)$";
     // OPTIONS
-    public static File configFile = new File("config.yaml");
+    public static String configFile = "config.yaml";
     public static String zmqAddress = "tcp://*:6000";
 
 
@@ -27,10 +26,40 @@ public class ConfigServer {
         BasicConfigurator.configure();
     }
 
+    private static void parseArgs(String [] args) {
+
+        Options options = new Options();
+        Option logfile = OptionBuilder
+                .withArgName("file")
+                .hasArg()
+                .withDescription(  "read config from this file" )
+                .create( "config" );
+
+        Option endpoint = OptionBuilder
+                .withArgName("address")
+                .hasArg()
+                .withDescription("serve config on this endpoint")
+                .create("endpoint");
+
+        options.addOption(endpoint);
+        options.addOption(logfile);
+
+        CommandLineParser parser = new GnuParser();
+
+        try {
+            CommandLine line = parser.parse(options, args);
+            configFile = line.getOptionValue("config");
+            zmqAddress = line.getOptionValue("endpoint");
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         try {
-            Map<String, Object> map = loadConfig(configFile);
+            parseArgs(args);
+            Map<String, Object> map = loadConfig(new File(configFile));
             serveConfig(map);
 
         } catch (IOException e) {
@@ -50,19 +79,23 @@ public class ConfigServer {
 
                 checkFrames(frames);
 
-                Pattern protocol = Pattern.compile(REGEXP);
-                Matcher matcher = protocol.matcher(frames[1]);
-                String cmd   = matcher.group(0);
-                String key = matcher.group(1);
+                String cmd = frames[1];
+                String key = frames[2];
 
                 if (cmd.equals("GET")) {
-                    String value = (String) config.get(key);
-                    ZmqHelper.sndAll(sock, new String[]{"ZCS01", "OK", value});
+                    Object value = (String) config.get(key);
+
+                    if (value == null) {
+                        throw new IllegalArgumentException("Key not found");
+                    }
+
+                    ZmqHelper.sndAll(sock, new String[]{"ZCS01", "OK", (String) value});
+
                 } else {
                     throw new ProtocolException("CMD NOT SUPPORTED: " + cmd);
                 }
 
-            } catch (ProtocolException e) {
+            } catch (Exception e) {
                 ZmqHelper.sndAll(sock, new String[]{"ZCS01", "NOK", e.toString()});
             }
         }
@@ -78,7 +111,7 @@ public class ConfigServer {
      * @throws ProtocolException
      */
     private static void checkFrames(String[] frames) throws ProtocolException {
-        if (!(frames.length >= 2 && frames.length <= 3) ){
+        if (!(frames.length == 3) ){
             throw new ProtocolException("Wrong number of frames");
         }
 
@@ -86,9 +119,14 @@ public class ConfigServer {
             throw new ProtocolException("Wrong version string");
         }
 
-        if (! frames[1].matches(REGEXP) ) {
+        if (! frames[1].matches("(GET)") ) {
             throw new ProtocolException("Command not supported.");
         }
+
+        if (! frames[2].matches("^\\S*$") ) {
+            throw new ProtocolException("Illegal Value.");
+        }
+
     }
 
 
